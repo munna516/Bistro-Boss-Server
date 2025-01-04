@@ -26,6 +26,43 @@ async function run() {
     const menuCollection = client.db("Bistro-Boss").collection("Menu");
     const reviewsCollection = client.db("Bistro-Boss").collection("Reviews");
     const cartCollection = client.db("Bistro-Boss").collection("carts");
+    const userCollection = client.db("Bistro-Boss").collection("users");
+    // Get user
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+    // user Related Api
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      // Insert User If use Doesn't Exists
+      const query = { email: user.email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "User Already Exists", insertedId: null });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+    // Delete Operation
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    });
+    // set admin
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
     // Get Reviews From Database
     app.get("/reviews", async (req, res) => {
       const result = await reviewsCollection.find().toArray();
