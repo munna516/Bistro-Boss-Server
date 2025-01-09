@@ -29,6 +29,7 @@ async function run() {
     const reviewsCollection = client.db("Bistro-Boss").collection("Reviews");
     const cartCollection = client.db("Bistro-Boss").collection("carts");
     const userCollection = client.db("Bistro-Boss").collection("users");
+    const paymentCollection = client.db("Bistro-Boss").collection("payments");
 
     // JWT Token
     app.post("/jwt", async (req, res) => {
@@ -156,7 +157,7 @@ async function run() {
     });
 
     // Payment
-    app.post("/create-payment-intent",VerifyToken, async (req, res) => {
+    app.post("/create-payment-intent", VerifyToken, async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
       const paymentIntent = await stripe.paymentIntents.create({
@@ -165,6 +166,19 @@ async function run() {
         payment_method_types: ["card"],
       });
       res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
+    // Payment request
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+      const query = {
+        _id: {
+          $in: payment.cartIds.map((id) => new ObjectId(id)),
+        },
+      };
+      const deleteResult = await cartCollection.deleteMany(query);
+      res.send({ paymentResult, deleteResult });
     });
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
